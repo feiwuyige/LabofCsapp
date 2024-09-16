@@ -220,6 +220,8 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
+  //做差
+  int temp = x - 0x30;
   
   return 2;
 }
@@ -241,7 +243,14 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  //比较大小，作差，x - y
+  //没有减法，但是减去一个数字等于加上这个数字的补码
+  //求y的补码
+  int comY = ~y + 1;
+  int dif = x + comY;
+  //将作差结果和0比较大小,最高位为1 < 0 ,或者dif == 0,return 1
+  int result = (dif ^ 0) | (!dif);
+  return result;
 }
 //4
 /* 
