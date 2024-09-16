@@ -220,6 +220,7 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
+  
   return 2;
 }
 /* 
