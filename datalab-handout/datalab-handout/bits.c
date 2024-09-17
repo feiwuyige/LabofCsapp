@@ -174,10 +174,12 @@ int tmin(void) {
  *   Rating: 1
  */
 //maxInteger 0111 1111 1111 1111 1111 1111 1111 1111
+// 1111 1111 1111 1111 1111 1111 1111 1111 + 1 = 0
+// ~1111 1111 1111 1111 1111 1111 1111 1111 = 0
 int isTmax(int x) {
   int temp = x + 1;
-  int minIntegar = ~x;
-  int result = !(temp ^ minIntegar);
+  int notX = ~x;
+  int result = ((!(notX ^ temp)) & !!(temp ^ 0));
   return result;
 }
 /* 
@@ -190,11 +192,14 @@ int isTmax(int x) {
  */
 int allOddBits(int x) {
   int temp = 0xAA;
-  temp = (temp << 8) + 0xAA;
-  temp = (temp << 8) + 0xAA;
-  temp = (temp << 8) + 0xAA;
-  int result = !(temp ^ (x & temp));
-  return result;
+  int tempresult;
+  int result;
+  temp = ((temp << 8) + 0xAA);
+  temp = ((temp << 8) + 0xAA);
+  temp = ((temp << 8) + 0xAA);
+  tempresult = (x & temp);
+  result = !(temp ^ tempresult);
+  return result; 
 }
 /* 
  * negate - return -x 
@@ -220,8 +225,11 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  //做差
-  int temp = x - 0x30;
+  //x | 0x30 = x, 证明高位没有1了
+  //现在要证明低八位是0x30
+  //x & 0x30 = 0x30,证明高四位是3
+  int highNoOne = !((x | 0x30) ^ x);
+  int mid = !(( x & 0x30) ^ 0x30);
   
   return 2;
 }
@@ -243,13 +251,6 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  //比较大小，作差，x - y
-  //没有减法，但是减去一个数字等于加上这个数字的补码
-  //求y的补码
-  int comY = ~y + 1;
-  int dif = x + comY;
-  //将作差结果和0比较大小,最高位为1 < 0 ,或者dif == 0,return 1
-  int result = (dif ^ 0) | (!dif);
   return result;
 }
 //4
