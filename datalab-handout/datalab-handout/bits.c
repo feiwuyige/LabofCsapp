@@ -225,13 +225,20 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  //x | 0x30 = x, 证明高位没有1了
-  //现在要证明低八位是0x30
-  //x & 0x30 = 0x30,证明高四位是3
-  int highNoOne = !((x | 0x30) ^ x);
-  int mid = !(( x & 0x30) ^ 0x30);
-  
-  return 2;
+  //判断高位是否有1，向右移位6位和0比较
+  //判断中间是3，x & 0x30 = 0x30
+  //判断第4位是0或者是1000或1001
+  int highNoOne;
+  int three;
+  int zero;
+  int oneZeroZero;
+  int result;
+  highNoOne = !((x >> 6));
+  three = !((x & 0x30) ^ 0x30);
+  zero = !(x & 0x8);
+  oneZeroZero = !(x & 0x6);
+  result = highNoOne & three & (zero | oneZeroZero);
+  return result;
 }
 /* 
  * conditional - same as x ? y : z 
@@ -241,7 +248,11 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  int condition = !!x;
+  //若x为0，则此时mask全0，否则全1
+  int mask = (condition << 31) >> 31;
+  int result = (~mask & z) | (mask & y);
+  return result;
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -251,7 +262,20 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return result;
+  //比较大小，作差，没有减法，使用加法
+  //一个数负数的补码为取反+1，但是最小的负数没有对应的正数，特殊考虑
+  //但是可能会溢出，当y是正数，x是负数的时候，或者y是负数，x是正数的时候，判断符号位
+  int xsign = (x >> 31) & 0x1;
+  int ysign = (y >> 31) & 0x1;
+  //y正x负
+  int situation1 = (!ysign) & xsign;
+  //y负x正
+  int situation2 = (!xsign) & ysign;
+  int comX = (~x) + 1;
+  int dif = y + comX;
+  int difsign = (dif >> 31) & 0x1;
+  int result = situation1 | (!situation2 & !difsign);
+  return result; 
 }
 //4
 /* 
@@ -263,7 +287,13 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+  //这不就是三目运算符 x ? 0 : 1;
+  //但是不让使用！运算符，那么如何得到mask呢
+  //x | (~x + 1),除0以外数的相反数补码与自己或得到的结果全为1，而0的相反数结果为0
+  //还是要注意x可能是最小的负数
+  int mask = (x | (~x + 1)) >> 31;
+  int result = (mask ^ 1);
+  return result;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -278,7 +308,31 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+  //要知道需要多少位来表示，关键就是找到最高有效位再加上符号位
+  //对于正数而言形如 0000 1000 ... 1000,也就是从左往右找到第一个1的位置再加上1
+  //对于负数而言形如 1111 0000 ... 1000,也就是从左往右找到第一个0的位置再加上1
+  //所以我们可以把负数取反转化为正数，整个算法就统一起来，全部变成寻找第一个1的位置
+  //转化正数
+  int sign, b16, b8, b4, b2, b1, b0;
+  sign = (x >> 31);
+  x = x ^ (sign); //与0异或是自己，与1异或是相反数
+  //寻找最高有效位，折半查找，通过迭代来实现循环
+  b16 = !!(x >> 16); //高16位有没有1
+  b16 = b16 << 4; //若有1，则为10000，否则位0
+  x = x >> b16; //有1，则移位考虑高16位
+  b8 = !!(x >> 8);
+  b8 = b8 << 3;
+  x = x >> b8;
+  b4 = !!(x >> 4);
+  b4 = b4 << 2;
+  x = x >> b4;
+  b2 = !!(x >> 2);
+  b2 = b2 << 1;
+  x = x >> b2;
+  b1 = !!(x >> 1);
+  x = x >> b1;
+  b0 = x; //最后剩下的要么是0或1
+  return b16 + b8 + b4 + b2 + b1 + b0 + 1;
 }
 //float
 /* 
