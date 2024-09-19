@@ -291,8 +291,9 @@ int logicalNeg(int x) {
   //但是不让使用！运算符，那么如何得到mask呢
   //x | (~x + 1),除0以外数的相反数补码与自己或得到的结果全为1，而0的相反数结果为0
   //还是要注意x可能是最小的负数
+  //mask = 0x00000000 ^ 1 = 1;mask = 0xffffffff ^ 0
   int mask = (x | (~x + 1)) >> 31;
-  int result = (mask ^ 1);
+  int result = (mask ^ 1) & 1;
   return result;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
