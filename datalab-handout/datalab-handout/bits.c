@@ -292,7 +292,7 @@ int logicalNeg(int x) {
   //x | (~x + 1),除0以外数的相反数补码与自己或得到的结果全为1，而0的相反数结果为0
   //还是要注意x可能是最小的负数
   int mask = (x | (~x + 1)) >> 31;
-  int result = (mask ^ 1);
+  int result = (mask ^ 1) & 1;
   return result;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
@@ -318,7 +318,7 @@ int howManyBits(int x) {
   x = x ^ (sign); //与0异或是自己，与1异或是相反数
   //寻找最高有效位，折半查找，通过迭代来实现循环
   b16 = !!(x >> 16); //高16位有没有1
-  b16 = b16 << 4; //若有1，则为10000，否则位0
+  b16 = b16 << 4; //若有1，则为10000，否则为0
   x = x >> b16; //有1，则移位考虑高16位
   b8 = !!(x >> 8);
   b8 = b8 << 3;
@@ -346,8 +346,19 @@ int howManyBits(int x) {
  *   Max ops: 30
  *   Rating: 4
  */
+//根据IEEE754，浮点数乘以2就是阶码加1
+//对于NaN，指的是阶码为全1，但是尾数不全为0
 unsigned floatScale2(unsigned uf) {
-  return 2;
+  int sign = (uf >> 31) & 1;
+  int jiema = (uf >> 23) & 0xff;
+  int weishu = uf & 0x7fffff;
+  int result;
+  if(jiema == 0xff && weishu != 0){
+    return uf;
+  }
+  jiema = jiema + 1;
+  result = (sign >> 31) + (jiema >> 23) + weishu;
+  return result;
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -361,8 +372,35 @@ unsigned floatScale2(unsigned uf) {
  *   Max ops: 30
  *   Rating: 4
  */
+//求出阶码的值，然后根据阶码的值将小数点移动对应的尾数
+//但是要注意判断特殊的值
 int floatFloat2Int(unsigned uf) {
-  return 2;
+  //先求出符号位，阶码，尾数
+  int sign = (uf >> 31) & 1;
+  int jiema = (uf >> 23) & 0xff;
+  int weishu = uf & 0x7fffff;
+  int result, shift;
+  //如果阶码的真值小于0，也就是阶码小于127，那么小数点向左移动，转化为int就是0
+  if(jiema < 127) return 0;
+  //判断是否是infinity 或者 Nan
+  if(jiema == 255) return 0x80000000u;
+  //其他情况，那么就是移动小数点，但是int最多是32位，超过32位会溢出，所以此处还需要讨论
+  //给尾数加上隐含的1
+  weishu = weishu | 0x800000;
+  shift = jiema - 127;
+  if(shift > 31) return 0x80000000u;
+  //右移
+  if(shift < 23){
+    result = weishu >> (23 - shift);
+  }
+  else{
+    result = weishu << (shift - 23);
+  }
+  //根据符号位
+  if(sign){
+    result = -result;
+  }
+  return result;
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
@@ -378,5 +416,16 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+  if (x < -127) {
+        // 结果太小，返回 0
+      return 0;
+  }
+  if (x > 128) {
+      // 结果太大，返回 +INF
+      return 0x7f800000;
+  }
+  // 计算阶码：2^x 的阶码是 x + 127
+  int exp = x + 127;
+  // 构建浮点数的位级表示：符号位 0，阶码部分 exp，尾数部分 0
+  return exp << 23;
 }
