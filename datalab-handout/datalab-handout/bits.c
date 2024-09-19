@@ -354,11 +354,18 @@ unsigned floatScale2(unsigned uf) {
   int jiema = (uf >> 23) & 0xff;
   int weishu = uf & 0x7fffff;
   int result;
-  if(jiema == 0xff && weishu != 0){
+  //非规格化数字，乘以2相当于尾数左移一位，因为没有隐藏1了
+  if(jiema == 0 ){
+	result = (sign << 31) + (jiema << 23) + (weishu << 1);
+	return result;
+  }
+  //无穷
+  if(jiema == 0xff ){
     return uf;
   }
+  //正常情况
   jiema = jiema + 1;
-  result = (sign >> 31) + (jiema >> 23) + weishu;
+  result = (sign << 31) + (jiema << 23) + weishu;
   return result;
 }
 /* 
@@ -417,6 +424,7 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
+  int exp = x + 127;
   if (x < -127) {
         // 结果太小，返回 0
       return 0;
@@ -426,7 +434,6 @@ unsigned floatPower2(int x) {
       return 0x7f800000;
   }
   // 计算阶码：2^x 的阶码是 x + 127
-  int exp = x + 127;
   // 构建浮点数的位级表示：符号位 0，阶码部分 exp，尾数部分 0
   return exp << 23;
 }
